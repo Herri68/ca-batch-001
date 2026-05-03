@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useSearchParams, data as dataFn } from "react-router";
 import { toast } from "sonner";
 import type { Route } from "./+types/courses.$slug";
 import {
@@ -15,6 +15,12 @@ import {
 } from "~/services/progressService";
 import { getCurrentUserId } from "~/lib/session";
 import { LessonProgressStatus } from "~/db/schema";
+import {
+  getAverageRatingForCourse,
+  getUserRatingForCourse,
+  upsertRating,
+} from "~/services/ratingService";
+import { StarRating } from "~/components/star-rating";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -102,6 +108,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     : courseWithDetails.price;
   const tierInfo = getCountryTierInfo(country);
 
+  const [ratingInfo, userRating] = await Promise.all([
+    getAverageRatingForCourse(course.id),
+    currentUserId ? getUserRatingForCourse(currentUserId, course.id) : null,
+  ]);
+
   return {
     course: courseWithDetails,
     salesCopyHtml,
@@ -113,10 +124,34 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     currentUserId,
     pppPrice,
     tierInfo,
+    ratingInfo,
+    userRating,
   };
 }
 
-// No action — enrollment is handled via the purchase confirmation page
+export async function action({ params, request }: Route.ActionArgs) {
+  const currentUserId = await getCurrentUserId(request);
+  if (!currentUserId) throw dataFn("Unauthorized", { status: 401 });
+
+  const course = await (await import("~/services/courseService")).getCourseBySlug(params.slug);
+  if (!course) throw dataFn("Course not found", { status: 404 });
+
+  const enrolled = await (await import("~/services/enrollmentService")).isUserEnrolled(currentUserId, course.id);
+  if (!enrolled) throw dataFn("Not enrolled", { status: 403 });
+
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "rate") {
+    const rating = Number(formData.get("rating"));
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw dataFn("Invalid rating", { status: 400 });
+    }
+    await upsertRating(currentUserId, course.id, rating);
+  }
+
+  return null;
+}
 
 export function HydrateFallback() {
   return (
@@ -181,6 +216,8 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
     currentUserId,
     pppPrice,
     tierInfo,
+    ratingInfo,
+    userRating,
   } = loaderData;
   const isInstructor = currentUserId === course.instructorId;
   const [searchParams, setSearchParams] = useSearchParams();
@@ -301,6 +338,15 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
         <p className="mb-4 text-lg text-muted-foreground">
           {course.description}
         </p>
+        <div className="mb-3">
+          <StarRating
+            courseId={course.id}
+            averageRating={ratingInfo.average}
+            ratingCount={ratingInfo.count}
+            userRating={userRating}
+            interactive={enrolled}
+          />
+        </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <UserAvatar

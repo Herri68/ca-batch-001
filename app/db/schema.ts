@@ -244,6 +244,15 @@ export const coupons = pgTable("coupons", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
+export const courseRatings = pgTable("course_ratings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  courseId: integer("course_id").notNull().references(() => courses.id),
+  rating: integer("rating").notNull(), // 1–5
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
 export const videoWatchEvents = pgTable("video_watch_events", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")
