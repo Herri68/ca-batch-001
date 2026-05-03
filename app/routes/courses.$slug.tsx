@@ -340,11 +340,8 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
         </p>
         <div className="mb-3">
           <StarRating
-            courseId={course.id}
             averageRating={ratingInfo.average}
             ratingCount={ratingInfo.count}
-            userRating={userRating}
-            interactive={enrolled}
           />
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
