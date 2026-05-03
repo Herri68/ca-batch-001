@@ -459,6 +459,16 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
                       Buy More Seats
                     </Button>
                   </Link>
+                  <div className="border-t pt-3">
+                    <p className="mb-2 text-sm font-medium">Rate this course</p>
+                    <StarRating
+                      courseId={course.id}
+                      averageRating={ratingInfo.average}
+                      ratingCount={ratingInfo.count}
+                      userRating={userRating}
+                      interactive
+                    />
+                  </div>
                 </>
               ) : (
                 enrollButton
