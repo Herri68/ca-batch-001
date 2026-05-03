@@ -12,7 +12,8 @@
     "db:generate": "drizzle-kit generate",
     "db:seed": "node --env-file=.env --import tsx/esm scripts/seed.ts",
     "db:migrate": "drizzle-kit migrate",
-    "loc": "git ls-files | grep -vE '(lock|.db|_snapshot.json)' | xargs wc -l"
+    "loc": "git ls-files | grep -vE '(lock|.db|_snapshot.json)' | xargs wc -l",
+    "reset": "node scripts/course-reset.cjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
