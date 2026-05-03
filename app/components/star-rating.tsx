@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Star } from "lucide-react";
 import { useFetcher } from "react-router";
 import { cn } from "~/lib/utils";
@@ -18,6 +19,7 @@ export function StarRating({
   interactive = false,
 }: StarRatingProps) {
   const fetcher = useFetcher();
+  const [hover, setHover] = useState(0);
   const displayRating = averageRating ?? 0;
 
   function handleRate(star: number) {
@@ -25,32 +27,54 @@ export function StarRating({
     fetcher.submit({ intent: "rate", rating: String(star) }, { method: "POST" });
   }
 
-  const activeRating = interactive ? (userRating ?? 0) : displayRating;
+  if (interactive) {
+    const activeRating = hover || userRating || 0;
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-0.5" onMouseLeave={() => setHover(0)}>
+          {[1, 2, 3, 4, 5].map((star) => {
+            const filled = star <= activeRating;
+            return (
+              <button
+                key={star}
+                type="button"
+                onClick={() => handleRate(star)}
+                onMouseEnter={() => setHover(star)}
+                className="cursor-pointer p-0.5 transition-transform hover:scale-110"
+                aria-label={`Rate ${star} stars`}
+              >
+                <Star
+                  className={cn(
+                    "h-5 w-5",
+                    filled ? "fill-yellow-400 text-yellow-400" : "fill-none text-muted-foreground"
+                  )}
+                />
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {userRating
+            ? `Your rating: ${userRating} ★`
+            : "Click a star to rate this course"}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => {
-          const filled = interactive ? star <= activeRating : star <= Math.round(displayRating);
+          const filled = star <= Math.round(displayRating);
           return (
-            <button
+            <Star
               key={star}
-              type="button"
-              disabled={!interactive}
-              onClick={() => handleRate(star)}
               className={cn(
-                "transition-colors",
-                interactive ? "cursor-pointer hover:scale-110" : "cursor-default"
+                "h-4 w-4",
+                filled ? "fill-yellow-400 text-yellow-400" : "fill-none text-muted-foreground"
               )}
-              aria-label={interactive ? `Rate ${star} stars` : undefined}
-            >
-              <Star
-                className={cn(
-                  "h-4 w-4",
-                  filled ? "fill-yellow-400 text-yellow-400" : "fill-none text-muted-foreground"
-                )}
-              />
-            </button>
+            />
           );
         })}
       </div>
