@@ -70,12 +70,8 @@ console.log("Available checkpoints:");
 console.log("");
 
 checkpoints.forEach((checkpoint, index) => {
-  console.log(`${index + 1}. ${checkpoint.id} — ${checkpoint.title}`);
-  if (checkpoint.description) {
-    console.log(`   ${checkpoint.description}`);
-  }
-  console.log(`   commit: ${checkpoint.commit}`);
-  console.log("");
+  const label = checkpoint.description || checkpoint.title;
+  console.log(`${index + 1}. ${label}`);
 });
 
 const rl = readline.createInterface({
