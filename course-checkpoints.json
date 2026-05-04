@@ -10,5 +10,11 @@
         "title": "02. Menambahkan Rating Sistem",
         "commit": "fc85d14",
         "description": "Menambahkan rating sistem pada kursus"
+    },
+    {
+        "id": "00.00.03",
+        "title": "Planning",
+        "commit": "7e5a647",
+        "description": "Planning Prompt"
     }
 ]
