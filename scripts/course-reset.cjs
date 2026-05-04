@@ -103,6 +103,9 @@ rl.question("Choose checkpoint number: ", (answer) => {
   run("git fetch origin");
   run(`git reset --hard ${selected.commit}`);
 
+  // Restore reset tooling from origin/main so it stays available after any checkpoint
+  run("git checkout origin/main -- scripts/course-reset.cjs package.json course-checkpoints.json");
+
   console.log("");
   console.log(`Done. Branch "${currentBranch}" has been reset to ${selected.commit}.`);
 });
