@@ -4,5 +4,11 @@
         "title": "Initial commit",
         "commit": "c5b9aaf",
         "description": "Starting point aplikasi CA Batch 001"
+    },
+    {
+        "id": "00.00.02",
+        "title": "02. Menambahkan Rating Sistem",
+        "commit": "fc85d14",
+        "description": "Menambahkan rating sistem pada kursus"
     }
 ]
