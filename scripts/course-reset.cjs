@@ -99,9 +99,17 @@ rl.question("Choose checkpoint number: ", (answer) => {
   run("git fetch origin");
   run(`git reset --hard ${selected.commit}`);
 
-  // Restore reset tooling from origin/main so it stays available after any checkpoint
-  run("git checkout origin/main -- scripts/course-reset.cjs package.json course-checkpoints.json");
-  run("git checkout -- scripts/course-reset.cjs package.json course-checkpoints.json");
+  // Restore reset tooling by writing files directly (bypasses git index)
+  const toolingFiles = [
+    "scripts/course-reset.cjs",
+    "package.json",
+    "course-checkpoints.json",
+  ];
+  for (const file of toolingFiles) {
+    const content = execSync(`git show origin/main:${file}`, { encoding: "utf8" });
+    fs.writeFileSync(path.join(process.cwd(), file), content);
+  }
+  execSync(`git update-index --assume-unchanged ${toolingFiles.join(" ")}`);
 
   console.log("");
   console.log(`Done. Branch "${currentBranch}" has been reset to ${selected.commit}.`);
