@@ -253,6 +253,20 @@ export const courseRatings = pgTable("course_ratings", {
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
+export const lessonComments = pgTable("lesson_comments", {
+  id: serial("id").primaryKey(),
+  lessonId: integer("lesson_id")
+    .notNull()
+    .references(() => lessons.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
 export const videoWatchEvents = pgTable("video_watch_events", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")

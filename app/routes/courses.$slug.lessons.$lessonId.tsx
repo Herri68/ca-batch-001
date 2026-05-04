@@ -55,6 +55,13 @@ import { resolveCountry } from "~/lib/country.server";
 import { checkPppAccess, COUNTRIES } from "~/lib/ppp";
 import { findPurchase } from "~/services/purchaseService";
 import { parseFormData, parseParams } from "~/lib/validation";
+import {
+  addComment,
+  getCommentsForLesson,
+  getCommentById,
+  deleteComment,
+} from "~/services/commentService";
+import { CommentSection } from "~/components/comment-section";
 
 const lessonParamsSchema = z.object({
   slug: z.string().min(1),
@@ -63,6 +70,16 @@ const lessonParamsSchema = z.object({
 
 const markCompleteSchema = z.object({
   intent: z.literal("mark-complete"),
+});
+
+const addCommentSchema = z.object({
+  intent: z.literal("add-comment"),
+  content: z.string().min(1).max(2000),
+});
+
+const deleteCommentSchema = z.object({
+  intent: z.literal("delete-comment"),
+  commentId: z.coerce.number().int(),
 });
 
 export function meta({ data: loaderData }: Route.MetaArgs) {
@@ -203,6 +220,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const nextLesson =
     currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
+  const comments = enrolled || (currentUserId && currentUserId === course.instructorId)
+    ? await getCommentsForLesson(lesson.id)
+    : [];
+
   // Check for quiz attached to this lesson
   const quizRecord = await getQuizByLessonId(lessonId);
   let quiz: {
@@ -253,6 +274,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       id: courseWithDetails.id,
       title: courseWithDetails.title,
       slug: courseWithDetails.slug,
+      instructorId: course.instructorId,
     },
     curriculum: courseWithDetails.modules.map((m) => ({
       id: m.id,
@@ -281,6 +303,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     pppBlocked,
     pppBlockedCountry,
     pppPurchaseCountry,
+    comments,
   };
 }
 
@@ -329,6 +352,37 @@ export async function action({ params, request }: Route.ActionArgs) {
     }
 
     return { quizResult: result };
+  }
+
+  if (intent === "add-comment") {
+    const parsed = parseFormData(formData, addCommentSchema);
+    if (!parsed.success) {
+      throw data("Invalid comment", { status: 400 });
+    }
+    const lesson = await getLessonById(lessonId);
+    if (!lesson) throw data("Lesson not found", { status: 404 });
+    const isEnrolled = await isUserEnrolled(currentUserId, course.id);
+    const isInstructor = currentUserId === course.instructorId;
+    if (!isEnrolled && !isInstructor) {
+      throw data("Not authorized to comment", { status: 403 });
+    }
+    await addComment(currentUserId, lessonId, parsed.data.content);
+    return { success: true };
+  }
+
+  if (intent === "delete-comment") {
+    const parsed = parseFormData(formData, deleteCommentSchema);
+    if (!parsed.success) {
+      throw data("Invalid request", { status: 400 });
+    }
+    const comment = await getCommentById(parsed.data.commentId);
+    if (!comment) throw data("Comment not found", { status: 404 });
+    const isInstructor = currentUserId === course.instructorId;
+    if (comment.userId !== currentUserId && !isInstructor) {
+      throw data("Not authorized", { status: 403 });
+    }
+    await deleteComment(parsed.data.commentId);
+    return { success: true };
   }
 
   throw data("Invalid action", { status: 400 });
@@ -382,7 +436,9 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
     pppBlocked,
     pppBlockedCountry,
     pppPurchaseCountry,
+    comments,
   } = loaderData;
+  const isInstructor = currentUserId === course.instructorId;
   const [autoplay, toggleAutoplay] = useAutoplay();
   const fetcher = useFetcher({ key: `mark-complete-${lesson.id}` });
   const quizFetcher = useFetcher({ key: `quiz-${lesson.id}` });
@@ -590,6 +646,16 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
                 </fetcher.Form>
               )}
             </div>
+          )}
+
+          {/* Comment Section */}
+          {(enrolled || isInstructor) && currentUserId && (
+            <CommentSection
+              comments={comments}
+              currentUserId={currentUserId}
+              instructorId={course.instructorId}
+              lessonId={lesson.id}
+            />
           )}
 
           {/* Prev/Next Navigation */}
